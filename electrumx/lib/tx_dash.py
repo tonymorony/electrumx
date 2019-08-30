@@ -30,7 +30,8 @@ from collections import namedtuple
 
 from electrumx.lib.tx import Deserializer
 from electrumx.lib.util import (pack_le_uint16, pack_le_int32, pack_le_uint32,
-                                pack_le_int64, pack_varint, pack_varbytes)
+                                pack_le_int64, pack_varint, pack_varbytes,
+                                pack_be_uint16)
 
 
 # https://github.com/dashpay/dips/blob/master/dip-0002.md
@@ -86,7 +87,7 @@ class DashProRegTx(namedtuple("DashProRegTx",
             pack_le_uint16(self.mode) +                 # mode
             self.collateralOutpoint.serialize() +       # collateralOutpoint
             self.ipAddress +                            # ipAddress
-            pack_le_uint16(self.port) +                 # port
+            pack_be_uint16(self.port) +                 # port
             self.KeyIdOwner +                           # KeyIdOwner
             self.PubKeyOperator +                       # PubKeyOperator
             self.KeyIdVoting +                          # KeyIdVoting
@@ -104,7 +105,7 @@ class DashProRegTx(namedtuple("DashProRegTx",
             deser._read_le_uint16(),                    # mode
             deser._read_outpoint(),                     # collateralOutpoint
             deser._read_nbytes(16),                     # ipAddress
-            deser._read_le_uint16(),                    # port
+            deser._read_be_uint16(),                    # port
             deser._read_nbytes(20),                     # KeyIdOwner
             deser._read_nbytes(48),                     # PubKeyOperator
             deser._read_nbytes(20),                     # KeyIdVoting
@@ -129,7 +130,7 @@ class DashProUpServTx(namedtuple("DashProUpServTx",
             pack_le_uint16(self.version) +              # version
             self.proTxHash +                            # proTxHash
             self.ipAddress +                            # ipAddress
-            pack_le_uint16(self.port) +                 # port
+            pack_be_uint16(self.port) +                 # port
             pack_varbytes(self.scriptOperatorPayout) +  # scriptOperatorPayout
             self.inputsHash +                           # inputsHash
             self.payloadSig                             # payloadSig
@@ -141,7 +142,7 @@ class DashProUpServTx(namedtuple("DashProUpServTx",
             deser._read_le_uint16(),                    # version
             deser._read_nbytes(32),                     # proTxHash
             deser._read_nbytes(16),                     # ipAddress
-            deser._read_le_uint16(),                    # port
+            deser._read_be_uint16(),                    # port
             deser._read_varbytes(),                     # scriptOperatorPayout
             deser._read_nbytes(32),                     # inputsHash
             deser._read_nbytes(96)                      # payloadSig
@@ -210,23 +211,30 @@ class DashProUpRevTx(namedtuple("DashProUpRevTx",
         )
 
 
-class DashCbTx(namedtuple("DashCbTx", "version height merkleRootMNList")):
+class DashCbTx(namedtuple("DashCbTx", "version height merkleRootMNList "
+                                      "merkleRootQuorums")):
     '''Class representing DIP4 coinbase special tx'''
     def serialize(self):
         assert len(self.merkleRootMNList) == 32
-        return (
+        res = (
             pack_le_uint16(self.version) +              # version
             pack_le_uint32(self.height) +               # height
             self.merkleRootMNList                       # merkleRootMNList
         )
+        if self.version > 1:
+            assert len(self.merkleRootQuorums) == 32
+            res += self.merkleRootQuorums               # merkleRootQuorums
+        return res
 
     @classmethod
     def read_tx_extra(cls, deser):
-        return DashCbTx(
-            deser._read_le_uint16(),                    # version
-            deser._read_le_uint32(),                    # height
-            deser._read_nbytes(32)                      # merkleRootMNList
-        )
+        version = deser._read_le_uint16()
+        height = deser._read_le_uint32()
+        merkleRootMNList = deser._read_nbytes(32)
+        merkleRootQuorums = b''
+        if version > 1:
+            merkleRootQuorums = deser._read_nbytes(32)
+        return DashCbTx(version, height, merkleRootMNList, merkleRootQuorums)
 
 
 class DashSubTxRegister(namedtuple("DashSubTxRegister",
