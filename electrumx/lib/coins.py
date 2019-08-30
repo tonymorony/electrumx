@@ -1384,6 +1384,11 @@ class Komodo(KomodoMixin, EquihashMixin, Coin):
     REORG_LIMIT = 800
     PEERS = []
 
+class KomodoRegtest(KomodoMixin, EquihashMixin, Coin):
+    NET = "regtest"
+    PEERS = []
+    TX_COUNT = 1
+    TX_COUNT_HEIGHT = 1
 
 class Monaize(KomodoMixin, EquihashMixin, Coin):
     NAME = "Monaize"
