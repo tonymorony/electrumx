@@ -1384,7 +1384,7 @@ class Komodo(KomodoMixin, EquihashMixin, Coin):
     REORG_LIMIT = 800
     PEERS = []
 
-class KomodoRegtest(KomodoMixin, EquihashMixin, Coin):
+class KomodoRegtest(Komodo):
     NAME = "TESTCHAIN"
     NET = "regtest"
     PEERS = []
