@@ -1385,6 +1385,7 @@ class Komodo(KomodoMixin, EquihashMixin, Coin):
     PEERS = []
 
 class KomodoRegtest(KomodoMixin, EquihashMixin, Coin):
+    NAME = "TESTCHAIN"
     NET = "regtest"
     PEERS = []
     TX_COUNT = 1
